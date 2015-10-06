@@ -2,7 +2,6 @@ README.html
 # Ruby
 .rvmrc
 *.gem
-ruby/lib/redisrpc/version.rb
 # PHP
 composer.lock
 composer.phar
