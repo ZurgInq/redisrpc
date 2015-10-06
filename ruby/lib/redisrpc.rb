@@ -81,11 +81,12 @@ module RedisRPC
   end
 
   class Server
-    def initialize( redis_server, message_queue, local_object, timeout=nil )
+    def initialize( redis_server, message_queue, local_object, timeout: nil, non_blocking: false )
       @redis_server = redis_server
       @message_queue = message_queue
       @local_object = local_object
       @timeout = timeout
+      @non_blocking = non_blocking
     end
 
     def run
@@ -101,11 +102,9 @@ module RedisRPC
       @redis_server.del @message_queue
     end
 
-    private
-
     def run_one
       # request setup
-      message_queue, rpc_raw_request = @redis_server.blpop @message_queue, timeout
+      rpc_raw_request = get_raw_request
       return nil if rpc_raw_request.nil?
       rpc_request = MultiJson.load rpc_raw_request
       response_queue = rpc_request['response_queue']
@@ -126,6 +125,18 @@ module RedisRPC
         @redis_server.expire response_queue, 1
       end
       true
+    end
+
+    private
+
+    def get_raw_request
+      if @non_blocking
+        rpc_raw_request = @redis_server.lpop @message_queue
+      else
+        _, rpc_raw_request = @redis_server.blpop @message_queue, timeout
+      end
+
+      rpc_raw_request
     end
 
     def timeout
